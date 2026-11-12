@@ -111,6 +111,17 @@ Neste computador o servidor está registrado no **Agendador de Tarefas** como **
 
 O `iniciar.bat` detecta se o servidor já está no ar e apenas abre o navegador, em vez de tentar subir uma segunda instância.
 
+## Acesso remoto (túnel)
+
+O servidor é local: o endereço `192.168.x.x:5000` só funciona na mesma rede. Para jogar de outra rede (4G/5G, outra casa), use um túnel Cloudflare:
+
+1. Deixe o servidor rodando (`iniciar.bat` ou o Agendador).
+2. Instale o cloudflared: `winget install --id Cloudflare.cloudflared -e`.
+3. Rode **`tunel.bat`** e copie a URL `https://....trycloudflare.com`.
+4. Compartilhe a URL. Para uma mesa específica, acrescente `?mesa=CÓDIGO`.
+
+Aviso: o jogo não tem login; o túnel deixa a instância acessível a quem tiver o link. Use só com amigos e feche o túnel quando terminar. Quick Tunnels são temporários: a URL muda a cada execução; para endereço fixo, use um túnel nomeado da Cloudflare com domínio próprio.
+
 ### Firewall do Windows
 
 Na primeira execução, permita o Python na rede **privada**. Se ninguém conseguir conectar, abra o PowerShell como administrador e rode:
@@ -164,6 +175,7 @@ old_pirate_backgammon/
 ├─ iniciar.bat
 ├─ zerar_mesas.bat
 ├─ servico.vbs
+├─ tunel.bat
 └─ README.md
 ```
 
