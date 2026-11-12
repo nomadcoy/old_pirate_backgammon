@@ -27,6 +27,14 @@ if errorlevel 1 (
   )
 )
 
+powershell -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 5000 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+if not errorlevel 1 (
+  echo.
+  echo O servidor ja esta rodando na porta 5000.
+  start "" "http://127.0.0.1:5000"
+  exit /b 0
+)
+
 echo.
 echo ==============================================================
 echo   OLD PIRATE GAMMON  ::  iniciando o servidor na porta 5000

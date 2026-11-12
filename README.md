@@ -100,6 +100,17 @@ $env:OPG_PORT=5001; python app.py
 
 O padrão é **5000**.
 
+## Iniciar com o Windows
+
+Neste computador o servidor está registrado no **Agendador de Tarefas** como **Old Pirate Gammon**, disparado ao entrar no Windows. Ele roda oculto via `servico.vbs` e grava o log em `server.log` (ignorado pelo Git).
+
+- Ver a tarefa: `Get-ScheduledTask -TaskName "Old Pirate Gammon"`
+- Desativar: `Disable-ScheduledTask -TaskName "Old Pirate Gammon"`
+- Remover: `Unregister-ScheduledTask -TaskName "Old Pirate Gammon" -Confirm:$false`
+- Reiniciar agora: `zerar_mesas.bat`
+
+O `iniciar.bat` detecta se o servidor já está no ar e apenas abre o navegador, em vez de tentar subir uma segunda instância.
+
 ### Firewall do Windows
 
 Na primeira execução, permita o Python na rede **privada**. Se ninguém conseguir conectar, abra o PowerShell como administrador e rode:
@@ -149,6 +160,7 @@ old_pirate_backgammon/
 ├─ requirements.txt
 ├─ iniciar.bat
 ├─ zerar_mesas.bat
+├─ servico.vbs
 └─ README.md
 ```
 
