@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Old Pirate Gammon</title>
+  <meta name="theme-color" content="#070b08">
+  <meta name="description" content="Backgammon. Um jogo de percurso com cinco mil anos. Jogue com os amigos na sua rede local.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23070b08'/%3E%3Crect x='4' y='4' width='24' height='24' rx='4' fill='%230e1810' stroke='%238dff9e' stroke-width='1.5'/%3E%3Ccircle cx='11' cy='11' r='2' fill='%23ffb454'/%3E%3Ccircle cx='21' cy='11' r='2' fill='%23ffb454'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23ffb454'/%3E%3Ccircle cx='11' cy='21' r='2' fill='%23ffb454'/%3E%3Ccircle cx='21' cy='21' r='2' fill='%23ffb454'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ version }}">
+</head>
+<body data-screen="login">
+  <div class="fx-scanlines" aria-hidden="true"></div>
+  <div class="fx-vignette" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <button class="brand" id="brand" type="button" aria-label="início">
+      <span class="brand-mark">◈</span>
+      <span class="brand-text">
+        <b>OLD PIRATE</b><span>GAMMON</span>
+        <small>backgammon · terminal 0x1F</small>
+      </span>
+    </button>
+
+    <div class="net-status" id="net-status">
+      <span class="dot"></span>
+      <span id="net-label">conectando…</span>
+    </div>
+
+    <div class="top-actions">
+      <button type="button" class="chip" id="sound-toggle" title="ligar/desligar som">♪ som</button>
+      <button type="button" class="chip user-chip" id="user-chip" hidden title="trocar nickname">
+        <span class="mini-mark">◈</span><b id="user-nick"></b>
+      </button>
+      <button type="button" class="chip danger" id="leave-btn" hidden><span class="long">sair da mesa</span><span class="short">sair</span></button>
+    </div>
+  </header>
+
+  <main class="shell">
+
+    <!-- ═══════════════════════════ LOGIN ═══════════════════════════ -->
+    <section class="screen" id="screen-login">
+      <div class="login-wrap">
+        <pre class="ascii-dice" aria-hidden="true">
+      .---------    .---------.
+      |  o   o  |    |  o   o  |
+      |    o    |    |         |
+      |  o   o  |    |  o   o  |
+      '---------'    '---------'
+        </pre>
+
+        <div class="login-card panel">
+          <p class="eyebrow">// protocolo lúdico · 5.000 anos</p>
+          <h1>OLD PIRATE<br><span>GAMMON</span></h1>
+          <p class="tagline">Dados, posição e probabilidade. Sem cadastro, sem senha, sem perguntas.</p>
+
+          <form id="nick-form" autocomplete="off">
+            <label for="nick-input"><span class="prompt">&gt;</span> escolha seu nickname</label>
+            <div class="input-row">
+              <input id="nick-input" maxlength="16" placeholder="nickname" spellcheck="false" autocapitalize="off" aria-label="nickname">
+              <button type="submit" class="btn primary">ENTRAR</button>
+            </div>
+            <p class="micro">de 2 a 16 caracteres · dá para trocar depois</p>
+          </form>
+
+          <div class="login-tags">
+            <span>regras completas</span><span>match + cubo</span><span>chat da mesa</span>
+          </div>
+        </div>
+
+        <p class="login-quote">cinco mil anos · quinze peças iguais · dois dados · nenhum rei</p>
+        <p class="login-foot">servidor local · <span id="login-lan">:5000</span> · jogue com quem estiver na rede</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ LOBBY ═══════════════════════════ -->
+    <section class="screen" id="screen-lobby" hidden>
+      <div class="lobby-grid">
+        <section class="panel lobby-main">
+          <div class="panel-head">
+            <h2>MESAS ABERTAS</h2>
+            <div class="head-meta"><span class="dot online"></span> <b id="lobby-online">0</b> jogadores online</div>
+          </div>
+
+          <div class="lobby-actions">
+            <button type="button" class="btn primary big" id="quick-btn">JOGAR AGORA</button>
+            <form class="join-code" id="code-form">
+              <input id="code-input" maxlength="5" placeholder="código" spellcheck="false" aria-label="código da mesa">
+              <button type="submit" class="btn">ENTRAR</button>
+            </form>
+          </div>
+
+          <div class="table-list" id="table-list"></div>
+          <div class="empty-state" id="empty-tables" hidden>
+            <span class="blink">▌</span> nenhuma mesa aberta. crie a sua ou toque em “jogar agora”.
+          </div>
+
+          <div class="panel-foot">
+            <span>mesas abertas para qualquer jogador</span>
+            <span class="dim">clique numa mesa para entrar</span>
+          </div>
+        </section>
+
+        <aside class="lobby-side">
+          <section class="panel">
+            <div class="panel-head"><h3>ABRIR MESA</h3></div>
+            <form id="create-form" autocomplete="off">
+              <label for="table-name">nome da mesa</label>
+              <input id="table-name" maxlength="24" placeholder="ex.: mesa de sábado" spellcheck="false">
+              <label>match até</label>
+              <div class="seg" id="target-seg" role="group">
+                <button type="button" data-target="3">3</button>
+                <button type="button" data-target="5" class="active">5</button>
+                <button type="button" data-target="7">7</button>
+                <button type="button" data-target="11">11</button>
+              </div>
+              <button type="submit" class="btn primary full">CRIAR MESA</button>
+            </form>
+          </section>
+
+          <section class="panel rules">
+            <div class="panel-head"><h3>SOBRE O JOGO</h3></div>
+            <div class="about">
+              <p><b>5.000 anos.</b> Jogos de percurso com dados e peças já existiam na Mesopotâmia e no Egito por volta de 3000 a.C.; o Jogo Real de Ur é um desses ancestrais. Os romanos jogavam o <i>Ludus Duodecim Scriptorum</i> e a <i>Tabula</i>. O jogo atravessou a Idade Média, sobreviveu a proibições e continuou circulando em tavernas, ruas e casas.</p>
+              <p>Não há reis nem peças privilegiadas: as quinze peças de cada lado são iguais. A força vem da associação — duas peças ocupam um ponto — e o território é sempre temporário. O objetivo não é conquistar o tabuleiro: é retirar todas as peças. A vitória é a saída.</p>
+            </div>
+            <details>
+              <summary>regras do jogo <span class="dim">[+]</span></summary>
+              <div class="rules-body">
+                <p><b>Objetivo.</b> Levar as 15 fichas para fora do tabuleiro antes do adversário. Cada jogador anda sempre na mesma direção, em sentido contrário.</p>
+                <p><b>Dados.</b> Lance 2 dados e use os valores separadamente (ou a soma, em dois passos). Duplo = 4 jogadas do mesmo valor. É obrigatório usar os dois dados quando possível; se só um puder ser jogado, vale o maior.</p>
+                <p><b>Captura.</b> Ponto com uma ficha inimiga é <i>blot</i>: ao cair nele, a ficha vai para a barra. Com ficha na barra, você precisa recolocá-la antes de mover qualquer outra.</p>
+                <p><b>Saída.</b> Com todas as fichas na casa final, tire-as conforme os dados. Dado maior que a distância só pode tirar a ficha mais avançada. Não pode tirar se houver ficha na barra ou fora da casa.</p>
+                <p><b>Gammon / backgammon.</b> Se o perdedor não tirou nenhuma ficha: 2×. Se ainda tem ficha na barra ou na casa do vencedor: 3×.</p>
+                <p><b>Cubo.</b> Antes de rolar, o jogador pode dobrar. O adversário aceita (cubo dobra, quem aceitou fica dono) ou recusa (entrega o valor atual). Em jogo de <i>Crawford</i>, a dobra é proibida.</p>
+                <p><b>Match.</b> O primeiro a somar os pontos combinados vence. No fim de cada jogo, os pontos vão para o vencedor e o cubo volta a ×1.</p>
+              </div>
+            </details>
+            <details>
+              <summary>atalhos &amp; dicas <span class="dim">[+]</span></summary>
+              <div class="rules-body">
+                <p>Clique numa ficha para ver os destinos possíveis; clique no destino para mover. Para tirar ficha, selecione-a e clique na faixa <b>FORA</b> à direita — ou clique nela de novo.</p>
+                <p>O chat fica aberto durante toda a partida. Enter envia. Espectadores também podem conversar.</p>
+                <p>Compartilhe o link com <code>?mesa=CÓDIGO</code> para chamar alguém direto para a sua mesa.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="panel invite">
+            <div class="panel-head"><h3>CONVITE</h3></div>
+            <p class="dim small">Compartilhe este endereço com quem estiver na mesma rede:</p>
+            <code id="lan-url">http://…:5000</code>
+            <button type="button" class="btn full" id="copy-lan">COPIAR LINK</button>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ JOGO ═══════════════════════════ -->
+    <section class="screen" id="screen-game" hidden>
+      <div class="game-grid">
+        <section class="game-main">
+          <div class="statusbar" id="statusbar">
+            <span class="status-glyph">›</span>
+            <span id="status-text">aguardando…</span>
+            <span class="status-extra" id="status-extra"></span>
+          </div>
+
+          <div class="board-shell">
+            <div class="board" id="board" aria-label="tabuleiro de gamão"></div>
+            <div class="board-overlay" id="board-overlay" hidden>
+              <div class="overlay-card panel">
+                <p class="eyebrow" id="overlay-eyebrow">fim do jogo</p>
+                <h2 id="overlay-title">VITÓRIA</h2>
+                <p id="overlay-text"></p>
+                <div class="overlay-score" id="overlay-score"></div>
+                <div class="overlay-actions" id="overlay-actions"></div>
+                <button type="button" class="overlay-close" id="overlay-close" title="ver tabuleiro">ver tabuleiro ×</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="console">
+            <div class="dice-zone">
+              <div class="console-label">dados</div>
+              <div class="dice" id="dice"><span class="dice-empty">—</span></div>
+              <div class="dice-meta" id="dice-meta">aguardando lançamento</div>
+            </div>
+            <div class="actions" id="actions"></div>
+            <div class="log-zone">
+              <div class="console-label">registro</div>
+              <ol class="mini-log" id="mini-log"></ol>
+            </div>
+          </div>
+        </section>
+
+        <aside class="game-side">
+          <div class="game-head">
+            <div class="room-info">
+              <span class="eyebrow">mesa</span>
+              <b class="room-code" id="game-code">----</b>
+              <span class="room-name" id="game-name"></span>
+              <span class="badge" id="match-badge">match 5</span>
+              <span class="badge amber" id="cube-badge">cubo ×1</span>
+              <span class="badge danger" id="crawford-badge" hidden>crawford</span>
+            </div>
+            <div class="room-meta">
+              <span id="spectator-count"></span>
+              <button type="button" class="chip" id="invite-btn" title="copiar link da mesa">convidar</button>
+            </div>
+          </div>
+
+          <div class="players" id="players"></div>
+
+          <aside class="chat-panel panel">
+            <div class="panel-head chat-head">
+              <span>CHAT DA MESA</span>
+              <span class="chat-live"><span class="dot online"></span> ao vivo</span>
+            </div>
+            <div class="chat-body" id="chat-body" aria-live="polite"></div>
+            <form class="chat-form" id="chat-form" autocomplete="off">
+              <span class="prompt">&gt;</span>
+              <input id="chat-input" maxlength="240" placeholder="escreva uma mensagem…" aria-label="mensagem">
+              <button type="submit" title="enviar">↵</button>
+            </form>
+            <div class="chat-hint">enter envia · máx. 240</div>
+          </aside>
+        </aside>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="toasts" id="toasts" aria-live="assertive"></div>
+
+  <script src="{{ url_for('static', filename='vendor/socket.io.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ version }}"></script>
+</body>
+</html>
