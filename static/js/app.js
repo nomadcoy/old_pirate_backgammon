@@ -85,8 +85,13 @@
   };
 
   const baseUrl = () => {
-    if (location.origin && location.origin.startsWith('http')) return location.origin;
-    return store.lobby.lan_url || 'http://127.0.0.1:5000';
+    const origin = location.origin || '';
+    const host = location.hostname;
+    const isLoopback = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1';
+    const lan = (store.lobby && store.lobby.lan_url) ? store.lobby.lan_url.replace(/\/$/, '') : '';
+    if (isLoopback && lan) return lan;
+    if (origin.startsWith('http')) return origin;
+    return lan || 'http://127.0.0.1:5000';
   };
 
   const fmtTime = (ts) => {
