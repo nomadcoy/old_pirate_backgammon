@@ -58,6 +58,7 @@ Uma implementação local-first desse jogo: um motor de regras completo, um serv
 - **Tabuleiro completo** — 24 pontos, barra, casa, captura, reentrada e saída.
 - **Chat da mesa** — durante toda a partida, inclusive para quem está assistindo.
 - **Reconexão** — token de assento salvo no navegador; F5 ou queda de rede não perdem a partida.
+- **Sessão local** — botão de logout e um reset de mesas em um clique (`zerar_mesas.bat`).
 - **Cubo de dobra, match play e regra de Crawford** — implementados no servidor.
 - **Interface responsiva** — no desktop a tela inteira cabe na janela, sem rolagem de página; no celular a interface se reorganiza.
 - **WebSocket nativo com gevent** e fallback para polling.
@@ -79,6 +80,17 @@ No Windows, também é possível dar **duplo clique em `iniciar.bat`** — ele i
 Abra **http://127.0.0.1:5000**.
 
 O servidor escuta em `0.0.0.0:5000` e imprime o endereço de LAN no console. Para jogar com outras pessoas na mesma rede, compartilhe esse endereço — ou use o painel **CONVITE** dentro do lobby.
+
+## Zerar mesas e voltar ao login
+
+As mesas, sessões e partidas vivem em memória. Para começar do zero:
+
+- **Duplo clique em `zerar_mesas.bat`** — encerra o servidor na porta 5000, sobe um processo limpo e abre `http://127.0.0.1:5000/?sair=1` diretamente na tela de login.
+- **Botão `logout` no topo** — encerra a sessão local, libera sua mesa/assento e volta ao login sem reiniciar o servidor. Se estiver numa partida, ele avisa que a partida será encerrada.
+- **Link direto** — `http://127.0.0.1:5000/?sair=1` limpa o nickname/token salvos no navegador e abre o login.
+- **Manual** — `Ctrl+C` no servidor e `python app.py` (ou `iniciar.bat`) zera todas as mesas; depois abra o link com `?sair=1` para voltar ao login.
+
+Ao reiniciar o servidor, amigos que estiverem em mesas também são desconectados. Avise antes, se houver partida rolando.
 
 ### Porta diferente
 
@@ -136,6 +148,7 @@ old_pirate_backgammon/
 ├─ test_game.py           # testes do motor (regras + fuzz)
 ├─ requirements.txt
 ├─ iniciar.bat
+├─ zerar_mesas.bat
 └─ README.md
 ```
 

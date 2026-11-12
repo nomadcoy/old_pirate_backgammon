@@ -590,6 +590,16 @@ def on_leave_table():
     emit("lobby_state", lobby)
 
 
+@socketio.on("logout")
+def on_logout():
+    """Encerra a sessão do socket: libera mesa/assento e volta ao login no cliente."""
+    sid = request.sid
+    with LOCK:
+        detach_user(sid, explicit=True)
+        USERS.pop(sid, None)
+        push_lobby()
+
+
 @socketio.on("chat")
 def on_chat(data):
     data = data or {}

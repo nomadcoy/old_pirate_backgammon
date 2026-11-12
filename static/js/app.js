@@ -106,6 +106,7 @@
     });
     $('#leave-btn').hidden = name !== 'game';
     $('#user-chip').hidden = !store.nick;
+    $('#logout-btn').hidden = !store.nick || name === 'login';
     if (name !== 'game') {
       document.title = 'Old Pirate Gammon';
       store.overlayDismissed = false;
@@ -433,6 +434,38 @@
     $('#user-nick').textContent = nick;
     socket.emit('hello', { nick, token: store.token || null });
   });
+
+  const logout = () => {
+    if (store.table) {
+      const inGame = store.table.state && !store.table.state.game_over && !store.spectator;
+      const question = inGame
+        ? 'Sair da conta? A partida em andamento será encerrada.'
+        : 'Sair da conta e voltar ao login?';
+      if (!window.confirm(question)) return;
+    }
+    if (socket.connected) socket.emit('logout');
+    try {
+      localStorage.removeItem(LS.nick);
+      localStorage.removeItem(LS.token);
+    } catch (_) { /* modo privado */ }
+    store.nick = '';
+    store.token = '';
+    store.pendingHello = false;
+    store.pendingCode = null;
+    store.loginBusy = false;
+    const nickInput = $('#nick-input');
+    if (nickInput) nickInput.value = '';
+    const nickLabel = $('#user-nick');
+    if (nickLabel) nickLabel.textContent = '';
+    $('#user-chip').hidden = true;
+    $('#logout-btn').hidden = true;
+    resetTable();
+    try { history.replaceState(null, '', location.pathname); } catch (_) {}
+    showScreen('login');
+    restoreLoginBtn();
+  };
+
+  $('#logout-btn').addEventListener('click', logout);
 
   $('#leave-btn').addEventListener('click', () => {
     if (!store.table) { resetTable(); showScreen('lobby'); return; }
@@ -1236,6 +1269,17 @@
   };
 
   const init = () => {
+    try {
+      const params = new URLSearchParams(location.search);
+      if (params.get('sair') === '1') {
+        localStorage.removeItem(LS.nick);
+        localStorage.removeItem(LS.token);
+        store.nick = '';
+        store.token = '';
+        store.pendingCode = null;
+        history.replaceState(null, '', location.pathname);
+      }
+    } catch (_) { /* modo privado */ }
     buildBoard();
     applySoundToggle();
     $('#nick-input').value = store.nick || '';
