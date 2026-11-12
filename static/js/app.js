@@ -285,6 +285,7 @@
     $('#chat-input').value = '';
     renderChatAll();
     showScreen('game');
+    buildBoard();
     renderGame();
     applyStateFx(null, store.table.state, true);
     lastStateForFx = store.table.state;
@@ -684,6 +685,17 @@
     Object.keys(barEls).forEach((k) => delete barEls[k]);
     Object.keys(offEls).forEach((k) => delete offEls[k]);
 
+    // Assento 1 vê o tabuleiro espelhado: a casa dele (19-24) fica embaixo à direita.
+    const flip = Number.isInteger(store.seat) && store.seat === 1;
+    const topPoints = flip
+      ? [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+      : [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+    const bottomPoints = flip
+      ? [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+      : [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+    const topBarPlayer = flip ? 0 : 1;
+    const bottomBarPlayer = flip ? 1 : 0;
+
     const makePoint = (pt, row, idx) => {
       const node = el('div', 'point ' + row + (idx % 2 === 1 ? ' alt' : ''));
       node.dataset.pt = String(pt);
@@ -693,20 +705,20 @@
       pointEls[pt] = node;
     };
 
-    POINTS_TOP.forEach((pt, idx) => makePoint(pt, 'top', idx));
-    POINTS_BOTTOM.forEach((pt, idx) => makePoint(pt, 'bottom', idx));
+    topPoints.forEach((pt, idx) => makePoint(pt, 'top', idx));
+    bottomPoints.forEach((pt, idx) => makePoint(pt, 'bottom', idx));
 
     const bar = el('div', 'bar');
     const trayTop = el('div', 'bar-tray top');
-    trayTop.dataset.bar = '1';
+    trayTop.dataset.bar = String(topBarPlayer);
     trayTop.title = 'fichas na barra';
     const trayBottom = el('div', 'bar-tray bottom');
-    trayBottom.dataset.bar = '0';
+    trayBottom.dataset.bar = String(bottomBarPlayer);
     trayBottom.title = 'fichas na barra';
     bar.append(trayTop, trayBottom, el('span', 'bar-label', 'barra'));
     board.appendChild(bar);
-    barEls[1] = trayTop;
-    barEls[0] = trayBottom;
+    barEls[topBarPlayer] = trayTop;
+    barEls[bottomBarPlayer] = trayBottom;
 
     const makeOff = (player, cls) => {
       const node = el('div', 'off-tray ' + cls);
@@ -718,17 +730,17 @@
       board.appendChild(node);
       offEls[player] = node;
     };
-    makeOff(1, 'top');
-    makeOff(0, 'bottom');
+    makeOff(flip ? 0 : 1, 'top');
+    makeOff(flip ? 1 : 0, 'bottom');
 
-    board.addEventListener('click', (ev) => {
+    board.onclick = (ev) => {
       const off = ev.target.closest('.off-tray');
       if (off) { handleOffClick(Number(off.dataset.off)); return; }
       const tray = ev.target.closest('.bar-tray');
       if (tray) { handleBarClick(Number(tray.dataset.bar)); return; }
       const point = ev.target.closest('.point');
       if (point) handlePointClick(Number(point.dataset.pt));
-    });
+    };
   };
 
   const makeChecker = (owner, size) => {
