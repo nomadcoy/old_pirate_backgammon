@@ -116,9 +116,12 @@ O `iniciar.bat` detecta se o servidor já está no ar e apenas abre o navegador,
 Na primeira execução, permita o Python na rede **privada**. Se ninguém conseguir conectar, abra o PowerShell como administrador e rode:
 
 ```powershell
-New-NetFirewallRule -DisplayName "Old Pirate Gammon (porta 5000)" `
-  -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "Old Pirate Gammon (TCP 5000 LAN)" `
+  -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow `
+  -Profile Private,Public -RemoteAddress LocalSubnet
 ```
+
+A regra aceita apenas a **sub-rede local** — não abre a porta para a internet. O perfil `Public` cobre redes Wi‑Fi classificadas como públicas pelo Windows, que é o caso comum de uma rede doméstica recém-conectada.
 
 > O projeto foi pensado para rodar na sua máquina ou na sua LAN. Não exponha o servidor diretamente à internet sem um proxy e uma camada de autenticação.
 
