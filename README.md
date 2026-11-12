@@ -7,7 +7,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-8dff9e?style=flat-square)
 ![Flask](https://img.shields.io/badge/flask-3.x-8dff9e?style=flat-square)
 ![Socket.IO](https://img.shields.io/badge/socket.io-real--time-ffb454?style=flat-square)
-![gevent](https://img.shields.io/badge/gevent-websocket-8dff9e?style=flat-square)
+![gevent](https://img.shields.io/badge/gevent-8dff9e?style=flat-square)
 
 </div>
 
