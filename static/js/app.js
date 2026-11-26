@@ -473,6 +473,15 @@
 
   $('#logout-btn').addEventListener('click', logout);
 
+  $('#resign-btn').addEventListener('click', () => {
+    const st = currentState();
+    if (!st || st.game_over || !Number.isInteger(store.seat)) return;
+    const cube = st.cube ? st.cube.value : 1;
+    const question = `Desistir da partida? O adversário vence e marca ${cube} ponto(s) — valor atual do cubo, sem gammon.`;
+    if (!window.confirm(question)) return;
+    socket.emit('resign');
+  });
+
   $('#leave-btn').addEventListener('click', () => {
     if (!store.table) { resetTable(); showScreen('lobby'); return; }
     const inGame = store.table.state && !store.table.state.game_over && !store.spectator;
@@ -697,7 +706,8 @@
     const bottomBarPlayer = flip ? 1 : 0;
 
     const makePoint = (pt, row, idx) => {
-      const node = el('div', 'point ' + row + (idx % 2 === 1 ? ' alt' : ''));
+      const isAlt = row === 'top' ? idx % 2 === 1 : idx % 2 === 0;
+      const node = el('div', 'point ' + row + (isAlt ? ' alt' : ''));
       node.dataset.pt = String(pt);
       node.style.gridRow = row === 'top' ? '1' : '2';
       node.style.gridColumn = String(idx < 6 ? idx + 1 : idx + 2);
@@ -1056,6 +1066,12 @@
           store.selected !== null ? 'escolha o destino iluminado' : 'selecione uma ficha para mover',
           `${st.legal.length} jogada(s) legal(is) · ${st.remaining.length} dado(s)`
         ));
+        if (st.can_undo) {
+          const undoBtn = actionButton('desfazer jogada', '', () => socket.emit('undo_move'));
+          undoBtn.title = 'volta uma jogada deste turno — pode repetir';
+          wrap.appendChild(undoBtn);
+          wrap.appendChild(hint('desfazer', 'Ctrl+Z · pode voltar mais de uma'));
+        }
       } else if (st.phase === 'no_moves') {
         wrap.appendChild(hint('sem jogadas possíveis', 'passando automaticamente…'));
       }
@@ -1098,7 +1114,9 @@
     }
 
     let detail = `${winnerNick} venceu`;
-    if (r.declined) detail += ' — o adversário recusou a dobra.';
+    if (r.resigned) {
+      detail = `${winnerNick} venceu por desistência e marcou ${r.points} ponto(s).`;
+    } else if (r.declined) detail += ' — o adversário recusou a dobra.';
     else {
       const m = r.multiplier === 2 ? ' (gammon)' : r.multiplier === 3 ? ' (backgammon)' : '';
       detail += `${m} e marcou ${r.points} ponto(s).`;
@@ -1226,6 +1244,10 @@
       const n = (t.spectators || []).length;
       spec.textContent = n ? `${n} espectador${n > 1 ? 'es' : ''}` : '';
     }
+    const resignBtn = $('#resign-btn');
+    if (resignBtn) {
+      resignBtn.hidden = !(Number.isInteger(store.seat) && !!st && !st.game_over);
+    }
 
     renderPlayers(st);
     renderStatus(st);
@@ -1315,6 +1337,16 @@
       if (e.key === 'Escape' && store.selected !== null) {
         store.selected = null;
         renderGame();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        const st = currentState();
+        const active = document.activeElement;
+        const tag = (active && active.tagName) || '';
+        const typing = tag === 'INPUT' || tag === 'TEXTAREA' || (active && active.isContentEditable);
+        if (!typing && st && st.can_undo && myTurn(st) && !store.spectator) {
+          e.preventDefault();
+          socket.emit('undo_move');
+        }
       }
     });
     if (!store.pendingCode) {

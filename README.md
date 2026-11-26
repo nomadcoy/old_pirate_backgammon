@@ -51,12 +51,14 @@ Vencer não significa conquistar o tabuleiro, acumular propriedades ou eliminar 
 
 ## O que está aqui
 
-Uma implementação local-first desse jogo: um motor de regras completo, um servidor de partidas em tempo real, chat e uma interface de terminal vintage. Sem cadastro, sem senha, sem banco de dados. O servidor é a autoridade; o cliente só envia intenções de movimento.
+Uma implementação local-first desse jogo: um motor de regras completo, um servidor de partidas em tempo real, chat e uma interface de terminal vintage — com tabuleiro clássico de madeira e peças brancas e pretas. Sem cadastro, sem senha, sem banco de dados. O servidor é a autoridade; o cliente só envia intenções de movimento.
 
 - **Lobby em tempo real** — mesas abertas, entrada por código, matchmaking rápido e espectadores.
 - **Nickname livre** — 2 a 16 caracteres, trocável a qualquer momento.
-- **Tabuleiro completo** — 24 pontos, barra, casa, captura, reentrada e saída.
-- **Chat da mesa** — durante toda a partida, inclusive para quem está assistindo.
+- **Tabuleiro completo** - 24 pontos, barra, casa, captura, reentrada e saída. Visual clássico com peças brancas e pretas, dentro da estética de terminal.
+- **Desfazer jogada** - dentro do turno, volte um lance por vez (ou `Ctrl+Z`); pode repetir enquanto o turno não termina. Depois do último dado, o jogo segue.
+- **Desistir** - encerra uma partida perdida sem jogar até o fim; o adversário recebe o valor atual do cubo.
+- **Chat da mesa** - durante toda a partida, inclusive para quem está assistindo.
 - **Reconexão** — token de assento salvo no navegador; F5 ou queda de rede não perdem a partida.
 - **Sessão local** — botão de logout e um reset de mesas em um clique (`zerar_mesas.bat`).
 - **Cubo de dobra, match play e regra de Crawford** — implementados no servidor.
@@ -154,8 +156,9 @@ A regra aceita apenas a **sub-rede local** — não abre a porta para a internet
 2. **JOGAR AGORA** para achar adversário, **CRIAR MESA** para abrir a sua, ou entre pelo código / link.
 3. Na sua vez, clique em **LANÇAR DADOS** (ou **DOBRAR**, antes de lançar).
 4. Clique numa ficha iluminada e depois no destino iluminado. Para tirar ficha, selecione-a e clique na faixa **FORA** à direita — ou clique na ficha de novo.
-5. O chat fica no painel lateral durante toda a partida.
-6. Ao fim do jogo, **PRÓXIMO JOGO**; ao fim do match, **NOVO MATCH**.
+5. Dentro do turno, **DESFAZER JOGADA** (ou `Ctrl+Z`) volta um lance por vez; pode repetir. Quando o último dado é usado, o turno segue e o lance fica definitivo.
+6. O chat fica no painel lateral durante toda a partida.
+7. Ao fim do jogo, **PRÓXIMO JOGO**; ao fim do match, **NOVO MATCH**. Se a partida estiver perdida, **DESISTIR** encerra na hora — o adversário marca o valor atual do cubo (sem gammon).
 
 Atalhos: `Esc` cancela a seleção. `Enter` envia o chat.
 
@@ -194,7 +197,7 @@ O desenho é deliberadamente simples:
 python -m unittest test_game -v
 ```
 
-Os testes cobrem barra, bloqueio, captura, saída exata/maior, duplos, regra do dado maior, Crawford, cubo, gammon/backgammon e **150 partidas aleatórias completas** contra o motor. O fuzz existe para caçar estados inválidos — exatamente o tipo de problema que aparece quando o acaso faz parte da arquitetura.
+Os testes cobrem barra, bloqueio, captura, saída exata/maior, duplos, regra do dado maior, Crawford, cubo, gammon/backgammon, desfazer jogadas, desistência e **150 partidas aleatórias completas** contra o motor. O fuzz existe para caçar estados inválidos - exatamente o tipo de problema que aparece quando o acaso faz parte da arquitetura.
 
 ## Notas
 

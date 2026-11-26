@@ -662,7 +662,12 @@ def _after_action(t: dict):
         r = g.result
         winner_nick = t["seats"][r["winner"]]["nick"] if t["seats"][r["winner"]] else f"P{r['winner'] + 1}"
         if r["match_over"]:
-            sys_msg(t, f"{winner_nick} venceu o match por {g.scores[r['winner']]} × {g.scores[1 - r['winner']]}.")
+            how = " por desistência" if r.get("resigned") else ""
+            sys_msg(t, f"{winner_nick} venceu o match{how} por {g.scores[r['winner']]} × {g.scores[1 - r['winner']]}.")
+        elif r.get("resigned"):
+            loser_nick = t["seats"][1 - r["winner"]]["nick"] if t["seats"][1 - r["winner"]] else f"P{2 - r['winner']}"
+            sys_msg(t, f"{loser_nick} desistiu. {winner_nick} venceu e marcou {r['points']} ponto(s). "
+                       f"Placar {g.scores[0]} × {g.scores[1]}.")
         elif r["declined"]:
             sys_msg(t, f"Dobra recusada. {winner_nick} leva {r['points']} ponto(s).")
         else:
@@ -727,6 +732,34 @@ def on_pass():
             return
         try:
             g.pass_turn(seat)
+        except RuleError as exc:
+            toast(str(exc))
+            return
+        _after_action(t)
+
+
+@socketio.on("undo_move")
+def on_undo_move():
+    with LOCK:
+        u, t, seat, g = _game_context(request.sid)
+        if not g or seat is None:
+            return
+        try:
+            g.undo_move(seat)
+        except RuleError as exc:
+            toast(str(exc))
+            return
+        push_table(t)
+
+
+@socketio.on("resign")
+def on_resign():
+    with LOCK:
+        u, t, seat, g = _game_context(request.sid)
+        if not g or seat is None:
+            return
+        try:
+            g.resign(seat)
         except RuleError as exc:
             toast(str(exc))
             return

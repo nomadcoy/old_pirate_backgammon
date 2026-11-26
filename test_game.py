@@ -173,6 +173,100 @@ class TestRules(unittest.TestCase):
         with self.assertRaises(RuleError):
             g.offer_double(0)
 
+    def test_undo_restores_turn_state(self):
+        g = Game(target=11, rng=random.Random(11))
+        g.points = empty()
+        g.points[10] = 2
+        g.bar = [0, 0]
+        g.off = [0, 0]
+        g.turn = 0
+        g.phase = "moving"
+        g.dice = [2, 3]
+        g.remaining = [2, 3]
+        g.used = 0
+        g.log = []
+        g.undo_stack = []
+        g.best = _max_use(tuple(g.points), 0, 0, (2, 3))
+        g._legal = []
+        g._legal = g._compute_legal()
+        before = (tuple(g.points), tuple(g.bar), tuple(g.off), tuple(g.remaining), g.used)
+
+        mv = g._legal[0]
+        g.make_move(0, mv[0], mv[1])
+        self.assertEqual(g.used, 1)
+        self.assertTrue(g.public()["can_undo"])
+        g.undo_move(0)
+        self.assertEqual((tuple(g.points), tuple(g.bar), tuple(g.off), tuple(g.remaining), g.used), before)
+        self.assertFalse(g.public()["can_undo"])
+
+    def test_undo_multiple_doubles(self):
+        g = Game(target=11, rng=random.Random(12))
+        g.points = empty()
+        g.points[10] = 4
+        g.bar = [0, 0]
+        g.off = [0, 0]
+        g.turn = 0
+        g.phase = "moving"
+        g.dice = [2, 2]
+        g.remaining = [2, 2, 2, 2]
+        g.used = 0
+        g.log = []
+        g.undo_stack = []
+        g.best = _max_use(tuple(g.points), 0, 0, (2, 2, 2, 2))
+        g._legal = g._compute_legal()
+        for _ in range(2):
+            mv = g._legal[0]
+            g.make_move(0, mv[0], mv[1])
+        self.assertEqual(g.used, 2)
+        g.undo_move(0)
+        self.assertEqual(g.used, 1)
+        g.undo_move(0)
+        self.assertEqual(g.used, 0)
+        self.assertEqual(g.points[10], 4)
+
+    def test_cannot_undo_after_turn_ends(self):
+        g = Game(target=11, rng=random.Random(13))
+        g.points = empty()
+        g.points[10] = 2
+        g.bar = [0, 0]
+        g.off = [0, 0]
+        g.turn = 0
+        g.phase = "moving"
+        g.dice = [2, 3]
+        g.remaining = [2, 3]
+        g.used = 0
+        g.log = []
+        g.undo_stack = []
+        g.best = _max_use(tuple(g.points), 0, 0, (2, 3))
+        g._legal = g._compute_legal()
+        while g.phase == "moving" and g.used < g.best:
+            mv = g._legal[0]
+            g.make_move(0, mv[0], mv[1])
+        self.assertEqual(g.phase, "to_roll")
+        with self.assertRaises(RuleError):
+            g.undo_move(0)
+
+    def test_resign_awards_cube_value(self):
+        g = Game(target=11, rng=random.Random(14))
+        g.phase = "to_roll"
+        g.cube = {"value": 2, "owner": 0}
+        g.resign(0)
+        self.assertTrue(g.game_over)
+        self.assertEqual(g.result["winner"], 1)
+        self.assertEqual(g.result["points"], 2)
+        self.assertTrue(g.result["resigned"])
+        self.assertEqual(g.scores, [0, 2])
+
+    def test_resign_can_end_match(self):
+        g = Game(target=3, rng=random.Random(15))
+        g.scores = [0, 2]
+        g.phase = "to_roll"
+        g.cube = {"value": 2, "owner": 0}
+        g.resign(0)
+        self.assertTrue(g.match_over)
+        self.assertEqual(g.match_winner, 1)
+        self.assertEqual(g.scores, [0, 4])
+
 
 class TestRandomGames(unittest.TestCase):
     def test_fuzz_random_games(self):

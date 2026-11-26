@@ -169,6 +169,7 @@ class Game:
         self.used = 0
         self.best = 0
         self._legal = []
+        self.undo_stack = []
         self.cube = {"value": 1, "owner": None}
         self.double_offer = None
         self.game_over = False
@@ -212,6 +213,7 @@ class Game:
         self.used = 0
         self.best = 0
         self._legal = []
+        self.undo_stack = []
         self.double_offer = None
         self._bump()
 
@@ -233,6 +235,7 @@ class Game:
         rolled = [d1, d2] if d1 != d2 else [d1, d1, d1, d1]
         self.remaining = sorted(rolled)
         self.used = 0
+        self.undo_stack = []
         self.best = _max_use(tuple(self.points), self.bar[player], player, tuple(self.remaining))
         self.phase = "moving" if self.best > 0 else "no_moves"
         self._legal = self._compute_legal()
@@ -291,6 +294,16 @@ class Game:
             raise RuleError("Movimento ilegal.")
         die = entry[2]
 
+        # Fotografia antes do lance para permitir desfazer dentro do mesmo turno.
+        self.undo_stack.append({
+            "points": tuple(self.points),
+            "bar": tuple(self.bar),
+            "off": tuple(self.off),
+            "remaining": tuple(self.remaining),
+            "used": self.used,
+            "log_len": len(self.log),
+        })
+
         s = sign_of(player)
         hit = False
         if frm == "bar":
@@ -324,6 +337,40 @@ class Game:
         self._legal = self._compute_legal()
         if not self._legal:
             self._end_turn()
+
+    def undo_move(self, player: int):
+        """Desfaz o último lance deste turno, mantendo os dados rolados."""
+        if self.game_over:
+            raise RuleError("O jogo já terminou.")
+        if player != self.turn:
+            raise RuleError("Não é a sua vez.")
+        if self.phase != "moving":
+            raise RuleError("Não há jogada para desfazer neste momento.")
+        if not self.undo_stack:
+            raise RuleError("Nada para desfazer.")
+
+        snap = self.undo_stack.pop()
+        self.points = list(snap["points"])
+        self.bar = list(snap["bar"])
+        self.off = list(snap["off"])
+        self.remaining = list(snap["remaining"])
+        self.used = snap["used"]
+        self.log = self.log[:snap["log_len"]]
+        self.phase = "moving"
+        self._legal = self._compute_legal()
+        self._note(f"{self._nick(player)} desfez a jogada.")
+        self._bump()
+
+    def resign(self, player: int):
+        """Desiste da partida atual; o adversário leva o valor atual do cubo."""
+        if self.game_over:
+            raise RuleError("O jogo já terminou.")
+        if player not in (0, 1):
+            raise RuleError("Jogador inválido.")
+        winner = 1 - player
+        points = self.cube["value"]
+        self._note(f"{self._nick(player)} desistiu. {self._nick(winner)} venceu.")
+        self._finish_game(winner, points, 1, declined=False, resigned=True)
 
     def pass_turn(self, player: int):
         if self.game_over:
@@ -372,7 +419,7 @@ class Game:
 
     def _end_by_decline(self, winner: int):
         points = self.cube["value"] * 1
-        self._finish_game(winner, points, 1, declined=True)
+        self._finish_game(winner, points, 1, declined=True, resigned=False)
 
     def _finish_win(self, winner: int):
         loser = 1 - winner
@@ -385,14 +432,15 @@ class Game:
         points = self.cube["value"] * multiplier
         label = {1: "", 2: " (gammon)", 3: " (backgammon)"}[multiplier]
         self._note(f"{self._nick(winner)} venceu{label} e marcou {points} ponto(s).")
-        self._finish_game(winner, points, multiplier, declined=False)
+        self._finish_game(winner, points, multiplier, declined=False, resigned=False)
 
-    def _finish_game(self, winner: int, points: int, multiplier: int, declined: bool):
+    def _finish_game(self, winner: int, points: int, multiplier: int, declined: bool, resigned: bool = False):
         self.scores[winner] += points
         self.game_over = True
         self.phase = "game_over"
         self.double_offer = None
         self._legal = []
+        self.undo_stack = []
         match_over = self.scores[winner] >= self.target
         if match_over:
             self.match_over = True
@@ -403,6 +451,7 @@ class Game:
             "multiplier": multiplier,
             "cube": self.cube["value"],
             "declined": declined,
+            "resigned": resigned,
             "match_over": match_over,
         }
         self._bump()
@@ -435,6 +484,7 @@ class Game:
             "used": self.used,
             "best": self.best,
             "legal": legal,
+            "can_undo": (not self.game_over and self.phase == "moving" and self.used > 0 and bool(self.undo_stack)),
             "pips": [pip_count(self.points, self.bar[0], 0),
                      pip_count(self.points, self.bar[1], 1)],
             "scores": list(self.scores),
